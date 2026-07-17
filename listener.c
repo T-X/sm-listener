@@ -10,6 +10,7 @@
 
 #include <stdio.h>      // for fprintf()
 #include <net/if.h>     // for if_nametoindex()
+#include <unistd.h>	// for sleep() and close()
 #include <stdlib.h>     // for atoi() and exit()
 #include <arpa/inet.h>  // for sockaddr_in and inet_addr()
 #include <string.h>     // for memset()
