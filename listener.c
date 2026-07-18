@@ -27,6 +27,8 @@ int create_client_multirecv_socket(char *multicastIP, char *interface)
 	multicastAddr.sin6_addr = in6addr_any;		// Any incoming interface
 	multicastAddr.sin6_port = htons(0);		// Multicast port - let the OS decide
 
+	memset(&multicastRequest, 0, sizeof(multicastRequest));	// Zero out structure
+
 	// Create a best-effort datagram socket using UDP
 	if((sd = socket(PF_INET6, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
 		perror("socket() failed");
