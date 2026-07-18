@@ -108,14 +108,25 @@ int create_client_multirecv_socket(enum mc_api api, const char *multicastIP, con
 	return multicast_join(api, sd, &multicastAddr, ifindex);
 }
 
-
+void help(const char *command) {
+	printf("Usage: %s <multicast group> <interface> [rfc3678|rfc3493]\n", command);
+}
 
 int main(int argc, const char *argv[])
 {
 	int sd; enum mc_api api = MC_API_RFC3678;
 
+	for (int i = 1; i < argc; i++) {
+		if (!strcmp(argv[i], "-h") ||
+		    !strcmp(argv[i], "--help")) {
+			help(argv[0]);
+			exit(0);
+		}
+	}
+
 	if (argc < 3) {
 		fprintf(stderr, "Not enough command line arguments (must be 2, multicast group and interface");
+		help(argv[0]);
 		exit(1);
 	}
 
@@ -124,6 +135,7 @@ int main(int argc, const char *argv[])
 			api = MC_API_RFC3493;
 		} else if (strcmp(argv[3], "rfc3678")) {
 			fprintf(stderr, "invalid API \"%s\"\n", argv[3]);
+			help(argv[0]);
 			exit(1);
 		}
 	}
