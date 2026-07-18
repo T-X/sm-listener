@@ -63,7 +63,7 @@ int main(int argc, char *argv[])
 {
 	int sd;
 
-	if (argc < 2) {
+	if (argc < 3) {
 		perror("Not enough command line arguments (must be 2, multicast group and interface");
 		exit(1);
 	}
