@@ -15,7 +15,7 @@
 #include <arpa/inet.h>  // for sockaddr_in and inet_addr()
 #include <string.h>     // for memset()
 
-int create_client_multirecv_socket(char *multicastIP, char *interface)
+int create_client_multirecv_socket(const char *multicastIP, const char *interface)
 {
 	int sd;					// Socket descriptor
 	struct sockaddr_in6 multicastAddr;	// Multicast addresse structure
@@ -59,7 +59,7 @@ int create_client_multirecv_socket(char *multicastIP, char *interface)
 
 
 
-int main(int argc, char *argv[])
+int main(int argc, const char *argv[])
 {
 	int sd;
 
