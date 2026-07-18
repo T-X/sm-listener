@@ -1,8 +1,8 @@
+/* SPDX-FileCopyrightText: 2026 Linus Lüssing <linus.luessing@c0d3.blue> */
+/* SPDX-License-Identifier: CC0-1.0 */
+
 /**
  * sm-listener - Simple Multicast Listener
- *
- * Author: Linus Lüssing <linus.luessing@c0d3.blue>
- * License: Creative Commons Zero 1.0
  *
  * A tool to create a simple IPv6 dummy listener, which isn't actually
  * receiving anything.
