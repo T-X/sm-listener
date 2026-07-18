@@ -15,19 +15,44 @@
 #include <arpa/inet.h>  // for sockaddr_in and inet_addr()
 #include <string.h>     // for memset()
 
+static int multicast_join_rfc3493(int sd, struct in6_addr *multicastAddr, int ifindex)
+{
+	struct ipv6_mreq multicastRequest;	// Multicast address join structure
+
+	memset(&multicastRequest, 0, sizeof(multicastRequest));	// Zero out structure
+
+	multicastRequest.ipv6mr_multiaddr = *multicastAddr;
+
+	// Accept multicast from specified interface
+	multicastRequest.ipv6mr_interface = ifindex;
+
+	// Join the multicast address
+	if(setsockopt(sd, IPPROTO_IPV6, IPV6_JOIN_GROUP, (void *) &multicastRequest,
+		sizeof(multicastRequest)) < 0) {
+		perror("setsockopt(IPV6_JOIN_GROUP) failed");
+		return -1;
+	}
+
+	return 0;
+}
+
+static int multicast_join(int sd, struct in6_addr *multicastAddr, int ifindex)
+{
+	return multicast_join_rfc3493(sd, multicastAddr, ifindex);
+}
+
 int create_client_multirecv_socket(const char *multicastIP, const char *interface)
 {
 	int sd;					// Socket descriptor
-	struct sockaddr_in6 multicastAddr;	// Multicast addresse structure
-	struct ipv6_mreq multicastRequest;	// Multicast address join structure
+	struct sockaddr_in6 sockAddrAny;	// bind to any address/interface
+	struct in6_addr multicastAddr;
+	int ifindex;
 
 	// Construct bind structure
-	memset(&multicastAddr, 0, sizeof(multicastAddr));	// Zero out structure
-	multicastAddr.sin6_family = AF_INET6;		// Internet address family
-	multicastAddr.sin6_addr = in6addr_any;		// Any incoming interface
-	multicastAddr.sin6_port = htons(0);		// Multicast port - let the OS decide
-
-	memset(&multicastRequest, 0, sizeof(multicastRequest));	// Zero out structure
+	memset(&sockAddrAny, 0, sizeof(sockAddrAny));	// Zero out structure
+	sockAddrAny.sin6_family = AF_INET6;		// Internet address family
+	sockAddrAny.sin6_addr = in6addr_any;		// Any incoming interface
+	sockAddrAny.sin6_port = htons(0);		// Multicast port - let the OS decide
 
 	// Create a best-effort datagram socket using UDP
 	if((sd = socket(PF_INET6, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
@@ -35,26 +60,18 @@ int create_client_multirecv_socket(const char *multicastIP, const char *interfac
 		return -1;
 	}
 	// Bind to the multicast port
-	if(bind(sd, (struct sockaddr *) &multicastAddr, sizeof(multicastAddr)) < 0) {
+	if(bind(sd, (struct sockaddr *) &sockAddrAny, sizeof(sockAddrAny)) < 0) {
 		perror("bind() failed");
 		return -1;
 	}
-	// Specify the multicast group
-	if(!inet_pton(AF_INET6, multicastIP, &multicastRequest.ipv6mr_multiaddr)) {
+	if(!inet_pton(AF_INET6, multicastIP, &multicastAddr)) {
 		fprintf(stderr, "Invalid IP-address: %s", multicastIP);
 		return -1;
 	}
-	// Accept multicast from specified interface
-	multicastRequest.ipv6mr_interface = if_nametoindex(interface);
 
-	// Join the multicast address
-	if(setsockopt(sd, IPPROTO_IPV6, IPV6_JOIN_GROUP, (void *) &multicastRequest,
-		sizeof(multicastRequest)) < 0) {
-		perror("setsockopt() failed");
-		return -1;
-	}
+	ifindex = if_nametoindex(interface);
 
-	return sd;
+	return multicast_join(sd, &multicastAddr, ifindex);
 }
 
 
