@@ -125,7 +125,7 @@ int main(int argc, const char *argv[])
 	}
 
 	if (argc < 3) {
-		fprintf(stderr, "Not enough command line arguments (must be 2, multicast group and interface");
+		fprintf(stderr, "Not enough command line arguments (must be 2, multicast group and interface\n");
 		help(argv[0]);
 		exit(1);
 	}
