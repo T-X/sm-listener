@@ -15,6 +15,33 @@
 #include <arpa/inet.h>  // for sockaddr_in and inet_addr()
 #include <string.h>     // for memset()
 
+enum mc_api {
+	MC_API_RFC3678,
+	MC_API_RFC3493,
+};
+
+static int multicast_join_rfc3678(int sd, struct in6_addr *multicastAddr, int ifindex)
+{
+	struct group_req groupRequest;
+
+	memset(&groupRequest, 0, sizeof(groupRequest));	// Zero out structure
+
+	// Specify the multicast group
+	groupRequest.gr_group.ss_family = AF_INET6;
+	// Accept multicast from specified interface
+	groupRequest.gr_interface = ifindex;
+	((struct sockaddr_in6 *)&groupRequest.gr_group)->sin6_addr = *multicastAddr;
+
+	// Join the multicast address
+	if(setsockopt(sd, IPPROTO_IPV6, MCAST_JOIN_GROUP, (void *) &groupRequest,
+		sizeof(groupRequest)) < 0) {
+		perror("setsockopt(MCAST_JOIN_GROUP) failed");
+		return -1;
+	}
+
+	return 0;
+}
+
 static int multicast_join_rfc3493(int sd, struct in6_addr *multicastAddr, int ifindex)
 {
 	struct ipv6_mreq multicastRequest;	// Multicast address join structure
@@ -36,12 +63,19 @@ static int multicast_join_rfc3493(int sd, struct in6_addr *multicastAddr, int if
 	return 0;
 }
 
-static int multicast_join(int sd, struct in6_addr *multicastAddr, int ifindex)
+static int multicast_join(enum mc_api api, int sd, struct in6_addr *multicastAddr, int ifindex)
 {
-	return multicast_join_rfc3493(sd, multicastAddr, ifindex);
+	switch(api) {
+	case MC_API_RFC3678:
+		return multicast_join_rfc3678(sd, multicastAddr, ifindex);
+	case MC_API_RFC3493:
+		return multicast_join_rfc3493(sd, multicastAddr, ifindex);
+	}
+
+	return -1;
 }
 
-int create_client_multirecv_socket(const char *multicastIP, const char *interface)
+int create_client_multirecv_socket(enum mc_api api, const char *multicastIP, const char *interface)
 {
 	int sd;					// Socket descriptor
 	struct sockaddr_in6 sockAddrAny;	// bind to any address/interface
@@ -71,21 +105,30 @@ int create_client_multirecv_socket(const char *multicastIP, const char *interfac
 
 	ifindex = if_nametoindex(interface);
 
-	return multicast_join(sd, &multicastAddr, ifindex);
+	return multicast_join(api, sd, &multicastAddr, ifindex);
 }
 
 
 
 int main(int argc, const char *argv[])
 {
-	int sd;
+	int sd; enum mc_api api = MC_API_RFC3678;
 
 	if (argc < 3) {
 		fprintf(stderr, "Not enough command line arguments (must be 2, multicast group and interface");
 		exit(1);
 	}
 
-	sd = create_client_multirecv_socket(argv[1], argv[2]);
+	if (argc > 3) {
+		if (!strcmp(argv[3], "rfc3493")) {
+			api = MC_API_RFC3493;
+		} else if (strcmp(argv[3], "rfc3678")) {
+			fprintf(stderr, "invalid API \"%s\"\n", argv[3]);
+			exit(1);
+		}
+	}
+
+	sd = create_client_multirecv_socket(api, argv[1], argv[2]);
 	if(sd < 0) {
 		perror("create_client_multirecv_socket failed");
 		exit(1);
